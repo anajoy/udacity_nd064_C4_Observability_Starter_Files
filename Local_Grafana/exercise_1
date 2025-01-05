@@ -1,0 +1,75 @@
+## Please Note for this course, you will be running kubectl in the Vagrant VM. If you are familiar with port forwarding and setting up Kubernetes contexts, you can run kubectl on your local machine.
+
+## Prerequisites
+# Vagrant 2.2.XX and VirtuaBox 6.1.X should be installed on your local. - Go here(opens in a new tab) and choose Vagrant version, say 2.2.19, and follow the instructions to install Vagrant. Once installed, you can verify as:
+
+vagrant --version
+# Vagrant 2.4.2
+# Install Virtualbox 7.0.xx by downloading the installer from here(opens in a new tab). Once installed, you can verify as:
+VBoxManage --version
+# 7.0.22
+# Fork and clone the Github repository(opens in a new tab), and navigate to the /Local_Grafana Files directory that contains the Vagrantfile.
+
+git clone https://github.com/udacity/CNAND_nd064_C4_Observability_Starter_Files.git
+cd CNAND_nd064_C4_Observability_Starter_Files/Exercise_Starter_Files
+
+# Run these commands to provision the Vagrant VM:
+# Run from the directory that contains the Vagrantfile
+vagrant up
+vagrant ssh
+kubectl version
+Client Version: v1.31.3+k3s1
+Kustomize Version: v5.4.2
+Server Version: v1.31.3+k3s1
+
+# Troubleshoot
+# If you face VirtualBox Guest Additions or related error while running the vagrant up command, you can consider installing vagrant-vbguest(opens in a new tab) plugin, and try vagrant up again.
+vagrant plugin install vagrant-vbguest
+vagrant vbguest
+
+## Exercise Instructions
+# First we will need to install Helm v3. Helm is a popular package manager for Kubernetes. Here is how you can install it:
+sudo zypper in git
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Install Helm 3.x (not 2.x). Use these instructions on installing Helm(opens in a new tab) if you need more guidance.
+helm version
+version.BuildInfo{Version:"v3.16.4", GitCommit:"7877b45b63f95635153b29a42c0c2f4273ec45ca", GitTreeState:"clean", GoVersion:"go1.22.7"}
+
+# Next, we want to create the monitoring namespace
+kubectl create namespace monitoring
+# Install Prometheus and Grafana with Helm.
+# You may have noticed that the instructor installed some CRDs in the video. In version 0.4.2 of the operator, it was needed. As of the current update, we are on version 0.7 which no longer needs those CRDs which is why you won't see the command here any longer.
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+# helm repo add stable https://kubernetes-charts.storage.googleapis.com # This is deprecated
+helm repo add stable https://charts.helm.sh/stable
+helm repo update
+helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --kubeconfig /etc/rancher/k3s/k3s.yaml
+# Installing Helm v3, Prometheus and Grafana
+
+# Verify the pods in the cluster.
+kubectl get pods,svc --namespace=monitoring
+# To view the pods in the "prometheus" release
+kubectl --namespace monitoring get pods -l "release=prometheus"
+# You should see pods running, as shown in the snapshot below. Note the Grafana pod and service names.
+
+# There are two ways to port forward the Grafana service:
+# Option 1 - Port forward the Grafana service.
+kubectl port-forward service/prometheus-grafana --address 0.0.0.0 3000:80 --namespace monitoring
+# The command above will forward the local (guest VM) port 3000 to the default port on the pod running the Grafana service. Also, note that we have forwarded the port 3000 from the guest VM to the host machine already here(opens in a new tab). Therefore, you should be able to access the Grafana panel at http://127.0.0.1:3000/login(opens in a new tab) on your local host.
+
+
+# Option 2 - Port forward the Grafana specific pod.
+kubectl port-forward pod/prometheus-grafana-6bcd69b9f6-fmdxj --address 0.0.0.0 3000 --namespace monitoring
+# where, you will have to use the actual pod name in place of pod/prometheus-grafana-6bcd69b9f6-fmdxj as applicable to you. This way too, you should be able to access the Grafana panel at http://127.0.0.1:3000/login(opens in a new tab) on your host.
+
+# Kubectl port forwarding
+
+# Access the Grafana using the credentials:
+# in a webbrowser open url http://localhost:3000
+# Grafana version v.11.4.0
+
+# username: admin 
+# password: prom-operator
+

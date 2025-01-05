@@ -1,0 +1,94 @@
+##
+## Install Jaeger Operator
+##
+# Remember, you can get all of the files you'll need for this and the other exercises in this course from this GitHub Repo(opens in a new tab).
+
+#
+# Prerequisites
+#
+# The Vagrant VM having Prometheus and Grafana should be up and running. You can use a new terminal tab to open up a new SSH session to your VM.
+# Your present working directory should be CNAND_nd064_C4_Observability_Starter_Files/Exercise_Starter_Files, and opened an SSH session to the Vagrant VM as:
+vagrant ssh
+
+#
+# Exercise Instructions
+#
+# In this exercise, you will install Jaeger Tracing to your cluster.
+
+# We will be using the files hosted in the official Jaeger GitHub Repo(opens in a new tab). Run the below code to create the observability namespace and install the Jaeger components:
+
+### Create a namespace:
+kubectl create namespace observability
+
+# The kubectl get namespace command should show that you have both monitoring and observability namespaces present.
+
+### Installations for the Jaeger Operator.
+# Jaeger version updates very frequently. So, we recommend you to visit the Jaeger Operator docs(opens in a new tab) and check for the latest available version number. Once you decide upon the exact version to install, you can set it as export jaeger_version=v1.28.0.
+
+## Please use the latest stable version
+export jaeger_version=v1.28.0 
+
+## jaegertracing.io_jaegers_crd.yaml
+kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/crds/jaegertracing.io_jaegers_crd.yaml
+
+## service_account.yaml
+kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/service_account.yaml
+## role.yaml
+kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/role.yaml
+## role_binding.yaml
+kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/role_binding.yaml
+## operator.yaml
+kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/operator.yaml
+
+### Expand the roles to the Cluster. In other words, enable the cluster-wide permissions:
+## cluster_role.yaml
+kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/cluster_role.yaml
+## cluster_role_binding.yaml
+kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/cluster_role_binding.yaml
+
+# Verify the deployments.
+kubectl get deployment  -n observability
+kubectl get pods,svc -n observability
+
+# Auto-injecting Jaeger Agent Sidecars, a sample application, into every worker.
+kubectl apply -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/examples/business-application-injected-sidecar.yaml
+
+## optional
+# Delete Jaeger installation (delete before updating to higher release)
+
+kubectl delete svc -n observability --all
+service "jaeger-operator-metrics" deleted
+
+kubectl delete pods -n observability --all
+pod "jaeger-operator-694cbbb886-8qpfm" deleted
+
+kubectl delete deployment -n observability --all
+deployment.apps "jaeger-operator" deleted
+
+kubectl get crds | grep jaegers
+jaegers.jaegertracing.io                    2024-12-17T14:42:33Z
+
+kubectl delete crds jaegers.jaegertracing.io
+customresourcedefinition.apiextensions.k8s.io "jaegers.jaegertracing.io" deleted
+
+kubectl get roles -n observability
+NAME              CREATED AT
+jaeger-operator   2024-12-17T14:44:49Z
+
+kubectl delete role jaeger-operator -n observability
+role.rbac.authorization.k8s.io "jaeger-operator" deleted
+
+kubectl get rolebinding -n observability
+NAME              ROLE                   AGE
+jaeger-operator   Role/jaeger-operator   75m
+
+kubectl delete rolebinding jaeger-operator -n observability
+rolebinding.rbac.authorization.k8s.io "jaeger-operator" deleted
+
+kubectl get serviceaccounts -n observability
+NAME              SECRETS   AGE
+default           1         86m
+jaeger-operator   1         77m
+
+kubectl delete serviceaccount jaeger-operator -n observability
+serviceaccount "jaeger-operator" deleted

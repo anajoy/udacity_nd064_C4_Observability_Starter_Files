@@ -1,0 +1,58 @@
+##
+## Install promotheus-jmx-exporter
+##
+
+#
+# Prerequisites
+#
+# The Vagrant VM having Prometheus and Grafana should be up and running. You can use a new terminal tab to open up a new SSH session to your VM.
+vagrant ssh
+
+#
+# Exercise Instructions
+#
+
+# We will be using the files hosted in the official helm repo for prometheus-jmx-exporter. Run the below code to create the observability namespace and install the Jaeger components:
+
+### Create a namespace:
+kubectl create namespace observability
+
+# The kubectl get namespace command should show that you have both monitoring and observability namespaces present.
+kubectl get ns
+
+### Installations for the Prometheus JMX Exporter.
+helm repo add kubegemsapp https://charts.kubegems.io/kubegemsapp
+helm install my-prometheus-jmx-exporter kubegemsapp/prometheus-jmx-exporter --version 2.4.0 --namespace  observability --kubeconfig /etc/rancher/k3s/k3s.yaml
+
+# Verify the deployments.
+kubectl get deployment  -n observability
+kubectl get pods,svc -n observability
+
+# For further configuration see https://artifacthub.io/packages/helm/kubegemsapp/prometheus-jmx-exporter
+
+## Install a demo java-webabb for maven/tomcat on default namespace
+helm repo add demo-droject-2022 https://java-app-2022.github.io/PrivateHelm/
+helm install my-javawebapp demo-droject-2022/javawebapp --version 0.1.0 --kubeconfig /etc/rancher/k3s/k3s.yaml
+
+WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /etc/rancher/k3s/k3s.yaml
+WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /etc/rancher/k3s/k3s.yaml
+NAME: my-javawebapp
+LAST DEPLOYED: Tue Dec 17 23:32:05 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get the application URL by running these commands:
+  export POD_NAME=$(kubectl get pods --namespace default -l "app.kubernetes.io/name=javawebapp,app.kubernetes.io/instance=my-javawebapp" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace default $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl --namespace default port-forward $POD_NAME 8080:$CONTAINER_PORT
+vagrant@localhost:~> export POD_NAME=$(kubectl get pods --namespace default -l "app.kubernetes.io/name=javawebapp,app.kubernetes.io/instance=my-javawebapp" -o jsonpath="{.items[0].metadata.name}")
+vagrant@localhost:~> echo $POD_NAME
+my-javawebapp-5985646464-k7hhp
+vagrant@localhost:~> export CONTAINER_PORT=$(kubectl get pod --namespace default $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+vagrant@localhost:~> echo $CONTAINER_PORT
+8080
+
+## TODO
+# Add the jmx_prometheus_javaagent-0.17.0.jar to webapp start command
