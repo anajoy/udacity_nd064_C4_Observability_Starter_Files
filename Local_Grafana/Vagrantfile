@@ -70,7 +70,7 @@ Vagrant.configure("2") do |config|
 
     vb.memory = "4096"
     #vb.memory = "2048"
-    vb.name = "k3s_1"
+    vb.name = "nd064_observability_prework"
   end
   #
   # View the documentation for the provider you are using for more
