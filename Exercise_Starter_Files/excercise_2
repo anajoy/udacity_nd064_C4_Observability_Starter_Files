@@ -26,7 +26,7 @@ kubectl create namespace observability
 # Jaeger version updates very frequently. So, we recommend you to visit the Jaeger Operator docs(opens in a new tab) and check for the latest available version number. Once you decide upon the exact version to install, you can set it as export jaeger_version=v1.28.0.
 
 ## Please use the latest stable version
-export jaeger_version=v1.28.0 
+export jaeger_version=v1.28.0
 
 ## jaegertracing.io_jaegers_crd.yaml
 kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/crds/jaegertracing.io_jaegers_crd.yaml

@@ -1,0 +1,162 @@
+### Excercise Distribted tracing 1 and 2
+
+## Excercise tracing 1
+
+vagrant up
+vagrant ssh
+# [Optional] Change the prompt color
+export PS1='\e[0;31m\u@\h:\W> \e[m'
+kubectl version --short
+
+#check, if kubectl and jaeger-operator are set up correctly (for details see excercise 1 and 2)
+
+# Should return ‘jaeger-operator’ the deployment
+kubectl get deployment  -n observability
+kubectl get pods  -n observability
+kubectl get svc  -n observability
+
+'''
+vagrant@localhost:~> kubectl get deployment  -n observability
+NAME              READY   UP-TO-DATE   AVAILABLE   AGE
+jaeger-operator   1/1     1            1           75d
+vagrant@localhost:~> kubectl get pods  -n observability
+NAME                               READY   STATUS    RESTARTS   AGE
+jaeger-operator-694cbbb886-b9vkh   1/1     Running   0          75d
+vagrant@localhost:~> kubectl get svc  -n observability
+NAME                      TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)             AGE
+jaeger-operator-metrics   ClusterIP   10.43.14.120   <none>        8383/TCP,8686/TCP   75d
+'''
+
+# we don't have access to the external fs in this vagrant instance
+kubectl apply -n observability -f - <<EOF
+apiVersion: jaegertracing.io/v1
+kind: Jaeger
+metadata:
+  name: simplest
+EOF
+
+# Should return ‘simplest’
+# Run either one of the following
+kubectl get deployment -n observability
+kubectl get jaegers -n observability
+
+'''
+vagrant@localhost:~> kubectl get deployment -n observability
+NAME              READY   UP-TO-DATE   AVAILABLE   AGE
+jaeger-operator   1/1     1            1           75d
+simplest          1/1     1            1           8m2s
+vagrant@localhost:~> kubectl get jaegers -n observability
+NAME       STATUS    VERSION   STRATEGY   STORAGE   AGE
+'''
+
+kubectl get deployment,pods,svc  -n observability
+
+'''
+vagrant@localhost:~> kubectl get deployment,pods,svc  -n observability
+NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/jaeger-operator   1/1     1            1           75d
+deployment.apps/simplest          1/1     1            1           13m
+
+NAME                                   READY   STATUS    RESTARTS   AGE
+pod/jaeger-operator-694cbbb886-b9vkh   1/1     Running   0          75d
+pod/simplest-5757b95fdd-2x7rj          1/1     Running   0          13m
+
+NAME                                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                                  AGE
+service/jaeger-operator-metrics       ClusterIP   10.43.14.120    <none>        8383/TCP,8686/TCP                        75d
+service/simplest-collector-headless   ClusterIP   None            <none>        9411/TCP,14250/TCP,14267/TCP,14268/TCP   13m
+service/simplest-collector            ClusterIP   10.43.231.113   <none>        9411/TCP,14250/TCP,14267/TCP,14268/TCP   13m
+service/simplest-query                ClusterIP   10.43.51.36     <none>        16686/TCP,16685/TCP                      13m
+service/simplest-agent                ClusterIP   None            <none>        5775/UDP,5778/TCP,6831/UDP,6832/UDP      13m
+'''
+
+## Accessing the service
+# To view details of only specific instance, you can try
+kubectl get svc -l app.kubernetes.io/instance=simplest  -n observability
+
+'''
+vagrant@localhost:~> kubectl get svc -l app.kubernetes.io/instance=simplest  -n observability
+NAME                          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                                  AGE
+simplest-collector-headless   ClusterIP   None            <none>        9411/TCP,14250/TCP,14267/TCP,14268/TCP   14m
+simplest-collector            ClusterIP   10.43.231.113   <none>        9411/TCP,14250/TCP,14267/TCP,14268/TCP   14m
+simplest-query                ClusterIP   10.43.51.36     <none>        16686/TCP,16685/TCP                      14m
+simplest-agent                ClusterIP   None            <none>        5775/UDP,5778/TCP,6831/UDP,6832/UDP      14m
+'''
+
+## Verify the Ingress Port
+# Should return “number: 16686”
+kubectl get -n observability ingresses.v1.networking.k8s.io -o yaml | tail
+
+## Port forwarding
+kubectl port-forward -n observability  service/simplest-query --address 0.0.0.0 16686:16686
+
+## Adandon ssh session with CTRL - C as session killing does not work that way. Neither lsof, netstat nor netcat (nc) are installed
+# lsof -ti:16686 | xargs kill -9
+# simply open a new session:
+# cd D:\repo\udacity\udacity_nd064_C4_Observability_Starter_Files\Exercise_Starter_Files
+# vagrant ssh
+
+
+## Excercise tracing 2
+
+kubectl apply -n observability -f - <<EOF
+apiVersion: jaegertracing.io/v1
+kind: Jaeger
+metadata:
+    name: hotrod
+EOF
+
+# You will see the service/hotrod-query in the output
+kubectl get svc -l app.kubernetes.io/instance=hotrod  -n observability
+
+'''
+vagrant@localhost:/> kubectl get svc -l app.kubernetes.io/instance=hotrod  -n observability
+NAME                        TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)                                  AGE
+hotrod-collector-headless   ClusterIP   None           <none>        9411/TCP,14250/TCP,14267/TCP,14268/TCP   46s
+hotrod-collector            ClusterIP   10.43.225.15   <none>        9411/TCP,14250/TCP,14267/TCP,14268/TCP   46s
+hotrod-query                ClusterIP   10.43.97.164   <none>        16686/TCP,16685/TCP                      46s
+hotrod-agent                ClusterIP   None           <none>        5775/UDP,5778/TCP,6831/UDP,6832/UDP      46s
+'''
+
+# Install hotrod app to mock data (copy full file in ./hotrod.yaml)
+
+'''
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: hotrod
+  labels:
+    app: hotrod
+spec:
+...
+...
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hotrod
+  labels:
+    app: hotrod
+spec:
+...
+...
+          name: hotrod
+EOF
+'''
+# You will see the service/hotrod-query in the output
+kubectl get svc -l app.kubernetes.io/instance=hotrod  -n observability
+# Port forward the service/hotrod-query
+kubectl port-forward -n observability  service/hotrod-query --address 0.0.0.0 16686:16686
+
+## Pretest hotrod
+# Open the hotrod applications at http://localhost:8080 and press "Rachels ..."
+# Open the jaeger ui applications at http://localhost:8088 and selecet Jaeger-query and press buttom "Find traces".
+# You should see 6 traces.
+
+## Run optional challenge for python app in course-files\tracing-extra
+## Step 1: Implement with opentracing
+## Step 2: Migrate tracing from OPenTracing to OpenTelemetry (https://opentelemetry.io/docs/migration/opentracing/)
+
+## Check youtube video: Metrics and Logs Are Out, Distributed Tracing Is In With Chinmay Gaikwad | Kongcast Episode 5 https://www.youtube.com/watch?v=l5yFZrZBGXg
+## https://github.com/epsagon

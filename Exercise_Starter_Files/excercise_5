@@ -1,0 +1,105 @@
+## Dashboard build
+
+# Open Powershell
+cd D:\repo\udacity\udacity_nd064_C4_Observability_Starter_Files\Exercise_Starter_Files
+vagrant plugin install vagrant-scp
+# alternatively you can use shell provisioner:
+# set config.vm.synced_folder  ".", "/vagrant", disabled: false
+# vagrant reload
+
+vagrant up
+
+# copy your deployment files
+# SYNTAX: vagrant scp [source-filename] [destination-filename-with-path]
+
+cd sampleapp/k8s
+vagrant scp hotrod.yaml hotrod.yaml
+vagrant scp jaeger-instance.yaml jaeger-instance.yaml
+vagrant scp jaeger-app-1.yaml jaeger-app-1.yaml
+vagrant scp jaeger-app-2.yaml jaeger-app-2.yaml
+
+vagrant ssh
+
+# Install Grafana and Jaeger Operator in default namespace
+# Remove former install of grafana/prometheus in namespace monitoring
+# Remove former install of jaeger in namespace observability
+kubectl delete all --all -n monitoring
+kubectl delete all --all -n observability
+kubectl delete all --all
+kubectl delete ns monitoring, observability
+kubectl delete clusterrole prometheus-kube-state-metrics
+kubectl delete clusterrole prometheus-kube-prometheus-prometheus
+kubectl delete clusterrole prometheus-kube-prometheus-operator
+kubectl delete clusterrole prometheus-grafana-clusterrole
+kubectl delete clusterrole jaeger-operator
+kubectl delete clusterrolebinding prometheus-kube-state-metrics
+kubectl delete clusterrolebinding prometheus-kube-prometheus-operator
+kubectl delete clusterrolebinding prometheus-kube-prometheus-prometheus
+kubectl delete clusterrolebinding prometheus-grafana-clusterrolebinding
+kubectl delete clusterrolebinding jaeger-operator
+kubectl delete svc traefik-prometheus -n kube-system
+kubectl delete svc prometheus-kube-prometheus-kube-etcd -n kube-system
+kubectl delete svc prometheus-kube-prometheus-coredns -n kube-system
+kubectl delete svc prometheus-kube-prometheus-kube-scheduler -n kube-system
+kubectl delete svc prometheus-kube-prometheus-kube-proxy -n kube-system
+kubectl delete svc prometheus-kube-prometheus-kube-controller-manager -n kube-system
+kubectl delete svc prometheus-kube-prometheus-kubelet -n kube-system
+kubectl delete MutatingWebhookConfiguration prometheus-kube-prometheus-admission
+kubectl delete ValidatingWebhookConfiguration prometheus-kube-prometheus-admission
+
+# curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+# helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+# helm repo add stable https://charts.helm.sh/stable
+helm repo update
+helm install prometheus prometheus-community/kube-prometheus-stack --kubeconfig /etc/rancher/k3s/k3s.yaml
+kubectl get deployment
+'''
+vagrant@localhost:~> kubectl get deployment
+NAME                                  READY   UP-TO-DATE   AVAILABLE   AGE
+prometheus-grafana                    0/1     1            0           115s
+prometheus-kube-state-metrics         1/1     1            1           115s
+prometheus-kube-prometheus-operator   1/1     1            1           115s
+'''
+
+export jaeger_version=v1.28.0
+kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/crds/jaegertracing.io_jaegers_crd.yaml
+kubectl create  -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/service_account.yaml
+kubectl create  -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/role.yaml
+kubectl create  -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/role_binding.yaml
+kubectl create  -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/${jaeger_version}/deploy/operator.yaml
+
+kubectl apply  -f jaeger-instance.yaml
+# Apply frontend sample application
+kubectl apply  -f jaeger-app-1.yaml
+# Apply backend sample application
+kubectl apply  -f jaeger-app-2.yaml
+# Verify
+kubectl get jaegers
+
+# set port-forward to access grafana over localhost
+kubectl port-forward svc/prometheus-grafana -n monitoring --address 0.0.0.0 3000:80
+
+# Coninue with exporting jaeger access
+# Open Powershell
+cd D:\repo\udacity\udacity_nd064_C4_Observability_Starter_Files\Exercise_Starter_Files
+vagrant ssh
+kubectl port-forward  service/simpletest-query --address 0.0.0.0 16686:16686
+
+# Open Grafana and create a new datasource for jaeger with the URL below
+http://simpletest-query.default.svc.cluster.local:16686
+
+# Open a next Powershell session
+cd D:\repo\udacity\udacity_nd064_C4_Observability_Starter_Files\Exercise_Starter_Files
+vagrant ssh
+kubectl port-forward $(kubectl get pods -l=app="my-sample-app" -o name) 8888:8888
+
+# Open a next Powershell session
+cd D:\repo\udacity\udacity_nd064_C4_Observability_Starter_Files\Exercise_Starter_Files
+vagrant ssh
+# Produce some HTTP 200 requests
+for i in 0 1 2 3 4 5 6 7 8 9; do curl localhost:8888; done
+# Produce some error traces
+for i in 0 1 2 3 4 5 6 7 8 9; do curl localhost:8888/api/second; done
+
+# Excercise metrics requires a loki isntallation to work properly (skipped therefore). The tasks itself are trivial
+# (optional): install Grafana Loki with Helm chart: https://grafana.com/docs/loki/latest/setup/install/helm/install-scalable/

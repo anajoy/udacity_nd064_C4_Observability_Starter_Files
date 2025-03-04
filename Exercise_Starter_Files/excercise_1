@@ -69,5 +69,5 @@ kubectl port-forward pod/prometheus-grafana-6bcd69b9f6-fmdxj --address 0.0.0.0 3
 Kubectl port forwarding
 
 # Access the Grafana using the credentials:
-# username: admin 
+# username: admin
 # password: prom-operator
