@@ -101,5 +101,9 @@ for i in 0 1 2 3 4 5 6 7 8 9; do curl localhost:8888; done
 # Produce some error traces
 for i in 0 1 2 3 4 5 6 7 8 9; do curl localhost:8888/api/second; done
 
-# Excercise metrics requires a loki isntallation to work properly (skipped therefore). The tasks itself are trivial
+# Excercise metrics requires a loki isntallation to work properly (skipped therefore). The tasks itself are trivial.
+# url: demo-prometheus dashboards: https://play.grafana.org/dashboards/f/dFRSXVEiz/demo3a-prometheus
 # (optional): install Grafana Loki with Helm chart: https://grafana.com/docs/loki/latest/setup/install/helm/install-scalable/
+# Found this Prometheus DS working and looking fine to complete the task: Prometheus
+# Description: This is a modern 'Prometheus' dashboard for your Kubernetes cluster(s). Made for kube-prometheus-stack and take advantage of the latest Grafana features.
+# URL: https://grafana.com/grafana/dashboards/19105-prometheus/  GitHub repository: https://github.com/dotdc/grafana-dashboards-kubernetes
