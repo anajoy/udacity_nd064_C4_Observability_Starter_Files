@@ -93,9 +93,6 @@ cd D:\repo\udacity\udacity_nd064_C4_Observability_Starter_Files\Exercise_Starter
 vagrant ssh
 kubectl port-forward $(kubectl get pods -l=app="my-sample-app" -o name) 8888:8888
 
-# Open a next Powershell session
-cd D:\repo\udacity\udacity_nd064_C4_Observability_Starter_Files\Exercise_Starter_Files
-vagrant ssh
 # Produce some HTTP 200 requests
 for i in 0 1 2 3 4 5 6 7 8 9; do curl localhost:8888; done
 # Produce some error traces
